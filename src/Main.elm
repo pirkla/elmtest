@@ -9,13 +9,17 @@ import Json.Decode as Decode
 import Json.Encode as Encode
 import Debug
 
+import Auth0
+import Authentication
 
-main : Program (Maybe Model) Model Msg
+
+
+main : Program (Maybe Auth0.LoggedInUser) Model Msg
 main =
     Browser.element
         { init = init
         , update = update
-        , subscriptions = \_ -> Sub.none
+        , subscriptions = subscriptions
         , view = view
         }
 
@@ -34,7 +38,8 @@ type alias Model =
     , username : String
     , password : String
     , token : String
-    , errorMsg : String }
+    , errorMsg : String
+    , authModel : Authentication.Model }
 
 
 type Status
@@ -43,14 +48,19 @@ type Status
     | Success String
 
 
-init : Maybe Model -> ( Model, Cmd Msg )
-init model =
-    case model of
-        Just myModel ->
-            ( myModel, Cmd.none )
+init : Maybe Auth0.LoggedInUser -> ( Model, Cmd Msg )
+init initialUser =
+    ( Model "" "" "" "" "" "" (Authentication.init auth0authorize auth0logout initialUser), Cmd.none )
 
-        Nothing ->
-            ( Model "" "" "" "" "" "", fetchRandomQuote )
+
+-- init : Maybe Model -> ( Model, Cmd Msg )
+-- init model =
+--     case model of
+--         Just myModel ->
+--             ( myModel, Cmd.none )
+
+--         Nothing ->
+--             ( Model "" "" "" "" "" "", fetchRandomQuote )
 
 
 
@@ -72,6 +82,7 @@ type Msg
     | LogOut
     | FetchProtectedQuote
     | GotProtectedQuote (Result Http.Error String)
+    | AuthenticationMsg Authentication.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -107,6 +118,13 @@ update msg model =
         FetchProtectedQuote ->
             ( { model | protectedQuote = "Loading" }, fetchProtectedQuote model )
 
+        AuthenticationMsg authMsg ->
+            let
+                ( authModel, cmd ) =
+                    Authentication.update authMsg model.authModel
+            in
+                ( { model | authModel = authModel }, Cmd.map AuthenticationMsg cmd )
+
 
 -- Helper to update model and set localStorage with the updated model
 
@@ -117,6 +135,9 @@ setStorageHelper model =
 
 -- Ports
 
+port auth0authorize : Auth0.Options -> Cmd msg
+port auth0authResult : (Auth0.RawAuthenticationResult -> msg) -> Sub msg
+port auth0logout : () -> Cmd msg
 
 port setStorage : Model -> Cmd msg
 
@@ -264,20 +285,11 @@ postedAuth model result
    * Get a quote
 -}
 
+-- Subscriptions
 
--- view : Model -> Html Msg
--- view model =
---     div [ class "container" ]
---         [ h2 [ class "text-center" ] [ text "Chuck Norris Quotes" ]
---         , p [ class "text-center" ]
---             [ button [ class "btn btn-success", onClick FetchRandomQuote ] [ text "Grab a quote!" ]
---             ]
-
---         -- Blockquote with quote
---         , blockquote []
---             [ p [] [ text (getQuoteResult model.quoteStatus) ]
---             ]
---         ]
+subscriptions : a -> Sub Msg
+subscriptions model =
+    auth0authResult (Authentication.handleAuthResult >> AuthenticationMsg)
 
 
 view : Model -> Html Msg
