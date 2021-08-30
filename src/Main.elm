@@ -139,10 +139,12 @@ port auth0authorize : Auth0.Options -> Cmd msg
 port auth0authResult : (Auth0.RawAuthenticationResult -> msg) -> Sub msg
 port auth0logout : () -> Cmd msg
 
-port setStorage : Model -> Cmd msg
+setStorage : Model -> Cmd msg
+setStorage model = Cmd.none
 
 
-port removeStorage : Model -> Cmd msg
+removeStorage : Model -> Cmd msg
+removeStorage model = Cmd.none
 
 
 {-
@@ -291,6 +293,40 @@ subscriptions : a -> Sub Msg
 subscriptions model =
     auth0authResult (Authentication.handleAuthResult >> AuthenticationMsg)
 
+loginView : Model -> Html Msg
+loginView model =
+    div [ class "container" ]
+        [ div [ class "jumbotron text-center" ]
+            [ div []
+                (case Authentication.tryGetUserProfile model.authModel of
+                    Nothing ->
+                        [ p [] [ text "Please log in" ] ]
+
+                    Just user ->
+                        [ p [] [ text ("Hello, " ++ user.email ++ "!") ] ]
+                )
+            , p []
+                [ button
+                    [ class "btn btn-primary"
+                    , onClick
+                        (AuthenticationMsg
+                            (if Authentication.isLoggedIn model.authModel then
+                                Authentication.LogOut
+                                else
+                                Authentication.ShowLogIn
+                            )
+                        )
+                    ]
+                    [ text
+                        (if Authentication.isLoggedIn model.authModel then
+                            "Log Out"
+                            else
+                            "Log In"
+                        )
+                    ]
+                ]
+            ]
+        ]
 
 view : Model -> Html Msg
 view model =
@@ -394,5 +430,9 @@ view model =
                 [ -- Login/Register form or user greeting
                   protectedQuoteView
                 ]
-            ]
             
+            , div [ class "jumbotron text-left" ]
+                [ -- Login/Register form or user greeting
+                  loginView model
+                ]
+            ]

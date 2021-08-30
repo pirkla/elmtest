@@ -1,4 +1,5 @@
 import { Elm } from './Main.elm'
+
 // import { auth0 } from './Auth0.elm'
 
 // var storedState = localStorage.getItem('model');
@@ -20,11 +21,10 @@ import { Elm } from './Main.elm'
 
 
 
-
+// todo - this throws errors if the userinfo is empty. Userinfo shouldn't usually be empty, but a null value shouldn't crash the page either.
 var webAuth = new auth0.WebAuth({
     domain: 'dev-4soyikn3.us.auth0.com', // e.g., you.auth0.com
     clientID: 'IF3sz7cDBMLxsXoWBXMy72vkjlza6IRW',
-    scope: 'email',
     responseType: 'token',
     redirectUri: 'http://localhost:1234'
   });
